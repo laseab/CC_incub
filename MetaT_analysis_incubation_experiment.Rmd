@@ -1,0 +1,345 @@
+---
+title: "Incubation_experiment_MetaT_analysis"
+author: "Laura Seidel"
+date: "3/9/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library}
+library(ggplot2)
+library(phyloseq)
+library(dplyr)
+library(tidyverse)
+library(DESeq2)
+library(ggpubr)
+library(vegan)
+library(ecodist)
+```
+
+```{r tables of counts (normalized and filtered)}
+##count table
+#has been normalized with DESeq2
+counts <- read.table("normalized_filtered_counts.txt", header=T)%>%
+  rownames_to_column(var="orf") %>%
+  gather(sample,count, 2:ncol(.))%>%
+  filter(count >0)
+
+counts$orf <- gsub("__", "_", counts$orf)
+
+##meta table
+meta <- read.csv("metaRNAincub.csv")
+
+##taxa table
+taxa <- read_tsv("eukulele_phylodb.tsv")
+
+## join tables
+RNAcomb <- counts %>% 
+  left_join(meta, by="sample")%>%
+  inner_join(taxa, by="orf")
+
+## functional annotation
+eggnog <- read_tsv("eggnog_annotations.tsv.gz")
+
+```
+
+```{r PCoA - Figure XX}
+## Join counts table with meta to generate table for PCoA analysis
+RNApcoa <- counts %>% left_join(meta, by="sample")
+
+##PCoA with cmdscale 
+RNA_matrix <-  RNApcoa %>% 
+  dplyr::select(orf,sample,count) %>% 
+  spread(orf,count, fill= 0) %>% 
+  remove_rownames() %>% 
+  column_to_rownames(var = "sample")
+
+## Distance matrix based on Bray Curtis dissimilarities
+BC.dist_RNA=vegdist(RNA_matrix, distance="bray")
+
+
+##PcOA (Principal coordinates analysis, 
+#metric multidimensional scaling),
+#uses dissimilarity matrix (braay curtis distances) to represent inter-object dissimlarity in a low dimensional space
+
+pcoaVS <- pco(BC.dist_RNA, negvals = "zero", dround = 0) 
+
+## PLot
+plot(pcoaVS$vectors[,1], pcoaVS$vectors[,2], type = "n", xlab = "PCoA1", ylab = "PCoA2",
+ axes = TRUE, main = "PCoA ")
+text(pcoaVS$vectors[,1], pcoaVS$vectors[,2], labels(BC.dist_RNA), 
+ cex = 0.9, xpd = TRUE)
+
+pcoaVS$values # eigenvalue for each component. This is a measure of the variance explained by each dimension
+pcoaVS$vectors # eigenvectors. Each column contains the scores for that dimension.
+```
+
+```{r DE tables}
+## KEGG List with different Levels based on KEGG
+KEGGlist <- read.delim("ko00001_ed.txt")
+
+##Differential expressed genes between field and 8T in heated bay
+sig.DE.heat8 <- read_csv("Sig_DE_heatedbay_field_vs_T8_taxa_eggnog.csv")%>%
+            dplyr::select(-X1)%>%
+            replace_na(list(best_og_name="Unknown"))%>%
+            replace_na(list(rank="Unknown"))%>%
+            replace_na(list(species2="Unknown"))%>%
+            replace_na(list(kingdom="Unknown"))%>%
+            replace_na(list(phylum="Unknown"))%>%
+            replace_na(list(class="Unknown"))%>%
+            replace_na(list(order="Unknown"))%>%
+            replace_na(list(family="Unknown"))%>%
+            replace_na(list(genus="Unknown"))%>%
+            replace_na(list(species="Unknown"))%>%
+            replace_na(list(taxon="Unknown"))%>%
+            mutate_if(is.character, list(~na_if(.,"-"))) %>%
+            replace_na(list(KEGG_ko="Unknown"))%>%
+            filter(kingdom %in% c("Bacteria","Archaea"))
+
+
+sig.DE.heat8$KEGG_ko <- gsub("ko:","",sig.DE.heat8$KEGG_ko)
+
+sig.DE.heat8 <- rename(sig.DE.heat8, c("KEGG_ko"="KO"))
+
+sig.DE.heat8 <- sig.DE.heat8 %>% left_join(KEGGlist, by="KO")
+
+
+##Differential expressed genes between field and 16T in heated bay
+sig.DE.heat16 <- read_csv("Sig_DE_heatedbay_field_vs_T16_taxa_eggnog.csv")%>%
+            dplyr::select(-X1)%>%
+            replace_na(list(best_og_name="Unknown"))%>%
+            replace_na(list(rank="Unknown"))%>%
+            replace_na(list(species2="Unknown"))%>%
+            replace_na(list(kingdom="Unknown"))%>%
+            replace_na(list(phylum="Unknown"))%>%
+            replace_na(list(class="Unknown"))%>%
+            replace_na(list(order="Unknown"))%>%
+            replace_na(list(family="Unknown"))%>%
+            replace_na(list(genus="Unknown"))%>%
+            replace_na(list(species="Unknown"))%>%
+            replace_na(list(taxon="Unknown"))%>%
+            mutate_if(is.character, list(~na_if(.,"-"))) %>%
+            replace_na(list(KEGG_ko="Unknown"))%>%
+            filter(kingdom %in% c("Bacteria","Archaea"))
+
+
+sig.DE.heat16$KEGG_ko <- gsub("ko:","",sig.DE.heat16$KEGG_ko)
+
+sig.DE.heat16 <- rename(sig.DE.heat16, c("KEGG_ko"="KO"))
+
+sig.DE.heat16 <- sig.DE.heat16 %>% left_join(KEGGlist, by="KO")
+
+
+##Differential expressed genes between field and 16T in heated bay
+sig.DE.heat28 <- read_csv("Sig_DE_heatedbay_field_vs_T16_taxa_eggnog.csv")%>%
+            dplyr::select(-X1)%>%
+            replace_na(list(best_og_name="Unknown"))%>%
+            replace_na(list(rank="Unknown"))%>%
+            replace_na(list(species2="Unknown"))%>%
+            replace_na(list(kingdom="Unknown"))%>%
+            replace_na(list(phylum="Unknown"))%>%
+            replace_na(list(class="Unknown"))%>%
+            replace_na(list(order="Unknown"))%>%
+            replace_na(list(family="Unknown"))%>%
+            replace_na(list(genus="Unknown"))%>%
+            replace_na(list(species="Unknown"))%>%
+            replace_na(list(taxon="Unknown"))%>%
+            mutate_if(is.character, list(~na_if(.,"-"))) %>%
+            replace_na(list(KEGG_ko="Unknown"))%>%
+            filter(kingdom %in% c("Bacteria","Archaea"))
+
+
+sig.DE.heat28$KEGG_ko <- gsub("ko:","",sig.DE.heat28$KEGG_ko)
+
+sig.DE.heat28 <- rename(sig.DE.heat28, c("KEGG_ko"="KO"))
+
+sig.DE.heat28 <- sig.DE.heat28 %>% left_join(KEGGlist, by="KO")
+
+##Differential expressed genes between field and 8C in control bay
+sig.DE.con8 <- read_csv("Sig_DE_controlbay_field_vs_C8_taxa_eggnog.csv")%>%
+            dplyr::select(-X1)%>%
+            replace_na(list(best_og_name="Unknown"))%>%
+            replace_na(list(rank="Unknown"))%>%
+            replace_na(list(species2="Unknown"))%>%
+            replace_na(list(kingdom="Unknown"))%>%
+            replace_na(list(phylum="Unknown"))%>%
+            replace_na(list(class="Unknown"))%>%
+            replace_na(list(order="Unknown"))%>%
+            replace_na(list(family="Unknown"))%>%
+            replace_na(list(genus="Unknown"))%>%
+            replace_na(list(species="Unknown"))%>%
+            replace_na(list(taxon="Unknown"))%>%
+            mutate_if(is.character, list(~na_if(.,"-"))) %>%
+            replace_na(list(KEGG_ko="Unknown"))%>%
+            filter(kingdom %in% c("Bacteria","Archaea"))
+
+
+sig.DE.con8$KEGG_ko <- gsub("ko:","",sig.DE.con8$KEGG_ko)
+
+sig.DE.con8 <- rename(sig.DE.con8, c("KEGG_ko"="KO"))
+
+sig.DE.con8 <- sig.DE.con8 %>% left_join(KEGGlist, by="KO")
+
+
+##Differential expressed genes between field and 16C in control bay
+sig.DE.con16 <- read_csv("Sig_DE_controlbay_field_vs_C16_taxa_eggnog.csv")%>%
+            dplyr::select(-X1)%>%
+            replace_na(list(best_og_name="Unknown"))%>%
+            replace_na(list(rank="Unknown"))%>%
+            replace_na(list(species2="Unknown"))%>%
+            replace_na(list(kingdom="Unknown"))%>%
+            replace_na(list(phylum="Unknown"))%>%
+            replace_na(list(class="Unknown"))%>%
+            replace_na(list(order="Unknown"))%>%
+            replace_na(list(family="Unknown"))%>%
+            replace_na(list(genus="Unknown"))%>%
+            replace_na(list(species="Unknown"))%>%
+            replace_na(list(taxon="Unknown"))%>%
+            mutate_if(is.character, list(~na_if(.,"-"))) %>%
+            replace_na(list(KEGG_ko="Unknown"))%>%
+            filter(kingdom %in% c("Bacteria","Archaea"))
+
+
+sig.DE.con16$KEGG_ko <- gsub("ko:","",sig.DE.con16$KEGG_ko)
+
+sig.DE.con16 <- rename(sig.DE.con16, c("KEGG_ko"="KO"))
+
+sig.DE.con16 <- sig.DE.con16 %>% left_join(KEGGlist, by="KO")
+
+
+##Differential expressed genes between field and 16C in control bay
+sig.DE.con28 <- read_csv("Sig_DE_controlbay_field_vs_C28_taxa_eggnog.csv")%>%
+            dplyr::select(-X1)%>%
+            replace_na(list(best_og_name="Unknown"))%>%
+            replace_na(list(rank="Unknown"))%>%
+            replace_na(list(species2="Unknown"))%>%
+            replace_na(list(kingdom="Unknown"))%>%
+            replace_na(list(phylum="Unknown"))%>%
+            replace_na(list(class="Unknown"))%>%
+            replace_na(list(order="Unknown"))%>%
+            replace_na(list(family="Unknown"))%>%
+            replace_na(list(genus="Unknown"))%>%
+            replace_na(list(species="Unknown"))%>%
+            replace_na(list(taxon="Unknown"))%>%
+            mutate_if(is.character, list(~na_if(.,"-"))) %>%
+            replace_na(list(KEGG_ko="Unknown"))%>%
+            filter(kingdom %in% c("Bacteria","Archaea"))
+
+
+sig.DE.con28$KEGG_ko <- gsub("ko:","",sig.DE.con28$KEGG_ko)
+
+sig.DE.con28 <- rename(sig.DE.con28, c("KEGG_ko"="KO"))
+
+sig.DE.con28 <- sig.DE.con28 %>% left_join(KEGGlist, by="KO")
+```
+
+```{r Combine DE tables}
+##Combine DE Tables of different temperatures to one table
+#Make a new column called temp 
+sig.DE.heat8_sub$temp <- "heat8T"
+sig.DE.heat16_sub$temp <- "heat16T"
+sig.DE.heat28_sub$temp <- "heat28T"
+sig.DE.con8_sub$temp <- "con8C"
+sig.DE.con16_sub$temp <- "con16C"
+sig.DE.con28_sub$temp <- "con28C"
+
+#combine tables
+sig.DE.all_sub <- rbind(sig.DE.heat8_sub,sig.DE.heat16_sub,sig.DE.heat28_sub,sig.DE.con8_sub,sig.DE.con16_sub,sig.DE.con28_sub)
+
+#sort them
+sig.DE.all_sub$temp <- factor(sig.DE.all_sub$temp,
+                          levels = c("heat8T","heat16T","heat28T","con8C","con16C","con28C"))
+
+#tidy up some columns with gene names
+sig.DE.all_sub$gene_name = str_split_fixed(sig.DE.all_sub$gene_info,",",2)[,1]
+sig.DE.all_sub$gene_name2 = str_split_fixed(sig.DE.all_sub$gene_name,";",2)[,1]
+```
+
+```{r Figure 7}
+##Compare differential expressed genes of the field samples
+sig.DE.field_sub$gene_name = str_split_fixed(sig.DE.field_sub$gene_info,",",2)[,1]
+sig.DE.field_sub$gene_name2 = str_split_fixed(sig.DE.field_sub$gene_name,";",2)[,1]
+
+sig.DE.field_sub$gene_name2 <- factor(sig.DE.field_sub$gene_name2, levels=c(          "apcA","apcB","apcC","apcD","apcE","apcF","ATPF0A","ATPF0B","ATPF0C","ATPF1A","ATPF1B","ATPF1D","ATPF1E","ATPF1G","cpcA","cpcB","cpcC","cpcD","cpcG","cpeA","cpeB","cpeC","cpeT","cpeU","cpeY","psaA","psaB","psaC","psaD","psaE","psaF","psaI","psaK","psaL","psb28","psb28-2","psbA","psbB","psbC","psbD","psbE","psbM","psbO","psbP","psbT","psbU","psbV","napA","napB","narG","narH","narI","nrfA","nirB","nirD","nrfH","nirK","nirS","norB","norC","nosZ","nifD","nifH","nifK","hao","pmoA-amoA", "pmoB-amoB","pmoC-amoC","soxA","soxC","soxX","soxY","soxZ","aprA","aprB","sat","dsrA","fccA","fccB", "dsrB","dnaJ","dnaK","groEL","groES","HSP20","HSP90A","ibpA","degP","GRPE","hslU","ppiC","ppiD","dnaN","gyrA","gyrB","mfd","phrB","radA","recA","recD","recJ","recN","recQ","ssb","uvrB","hns","ihfB","recT"))
+
+sig.DE.field_sub%>%
+  filter(!between(log2FoldChange, -5, 5))%>%
+  filter(gene_name2 %in% c(
+"apcA","apcB","apcC","apcD","apcE","apcF","ATPF0A","ATPF0B","ATPF0C","ATPF1A","ATPF1B","ATPF1D","ATPF1E","ATPF1G","cpcA","cpcB","cpcC","cpcD","cpcG","cpeA","cpeB","cpeC","cpeT","cpeU","cpeY","psaA","psaB","psaC","psaD","psaE","psaF","psaI","psaK","psaL","psb28","psb28-2","psbA","psbB","psbC","psbD","psbE","psbM","psbO","psbP","psbT","psbU","psbV","napA","napB","narG","narH","narI","nrfA","nirB","nirD","nrfH","nirK","nirS","norB","norC","nosZ","nifD","nifH","nifK","hao","pmoA-amoA", "pmoB-amoB","pmoC-amoC","soxA","soxC","soxX","soxY","soxZ","aprA","aprB","sat","dsrA","fccA","fccB", "dsrB","dnaJ","dnaK","groEL","groES","HSP20","HSP90A","ibpA","degP","GRPE","hslU","ppiC","ppiD","dnaN","gyrA","gyrB","mfd","phrB","radA","recA","recD","recJ","recN","recQ","ssb","uvrB","hns","ihfB","recT"))%>%
+ggplot( aes( temp,gene_name2,fill=log2FoldChange))+
+geom_tile()+
+scale_y_discrete(limits=rev)+
+geom_hline(yintercept=c(9.5,20.5, 31.5,41.5))+
+scale_fill_gradient2(low = "orange",
+                  mid="white",
+                      high = "blue",
+                      guide = "colorbar",
+                  limits=c(-25,25))+
+  annotate("text", x = 0.5, y = 45, label = "Photosynthesis")+
+  annotate("text", x = 0.5, y = 35, label = "Nitrogen Cycle")+
+  annotate("text", x = 0.5, y = 25, label = "Sulfur Cycle")+
+  annotate("text", x = 0.5, y = 15, label = "Stress")+
+  annotate("text", x = 0.5, y = 5, label = "Repair and recombination")
+
+```
+
+```{r Figure 8}
+
+##Select the genes you are interested in
+sig.DE.all_sub$gene_name2 <- factor(sig.DE.all_sub$gene_name2, levels=c(          "apcA","apcB","apcC","apcD","apcE","apcF","ATPF0A","ATPF0B","ATPF0C","ATPF1A","ATPF1B","ATPF1D","ATPF1E","ATPF1G","cpcA","cpcB","cpcC","cpcD","cpcG","cpeA","cpeB","cpeC","cpeT","cpeU","cpeY","psaA","psaB","psaC","psaD","psaE","psaF","psaI","psaK","psaL","psb28","psb28-2","psbA","psbB","psbC","psbD","psbE","psbM","psbO","psbP","psbT","psbU","psbV","napA","napB","narG","narH","narI","nrfA","nirB","nirD","nrfH","nirK","nirS","norB","norC","nosZ","nifD","nifH","nifK","hao","pmoA-amoA", "pmoB-amoB","pmoC-amoC","soxA","soxB","soxC","soxX","soxY","soxZ","aprA","aprB","asrA","asrB","sat","dsrA","fccA","fccB", "dsrB","dnaJ","dnaK","groEL","groES","HSP20","HSP90A","ibpA","degP","GRPE","hslU","ppiC","ppiD","dnaN","gyrA","gyrB","mfd","phrB","radA","recA","recD","recJ","recN","recQ","ssb","uvrB","hns","ihfB","recT"))
+     
+#Make heatmap
+  sig.DE.all_sub%>%
+  filter(!between(log2FoldChange, -5, 5))%>% #Only ORFs with LogFoldChange >5
+        filter(gene_name2 %in% c(
+"apcA","apcB","apcC","apcD","apcE","apcF","ATPF0A","ATPF0B","ATPF0C","ATPF1A","ATPF1B","ATPF1D","ATPF1E","ATPF1G","cpcA",
+"cpcB","cpcC","cpcD","cpcG","cpeA","cpeB","cpeC","cpeT","cpeU","cpeY","psaA","psaB","psaC","psaD","psaE","psaF","psaI",
+"psaK","psaL","psb28","psb28-2","psbA","psbB","psbC","psbD","psbE","psbM","psbO","psbP","psbT","psbU","psbV",
+"napA","napB","narG","narH","narI","nrfA","nirB","nirD","nrfH","nirK","nirS","norB","norC","nosZ","nifD","nifH","nifK",
+"hao","pmoA-amoA", "pmoB-amoB","pmoC-amoC","soxA","soxB","soxC","soxX","soxY","soxZ","aprA","aprB","asrA","asrB","sat",
+"dsrA","fccA","fccB", "dsrB","dnaJ","dnaK","groEL","groES","HSP20","HSP90A","ibpA","degP","GRPE","hslU","ppiC","ppiD",
+"dnaN","gyrA","gyrB","mfd","phrB","radA","recA","recD","recJ","recN","recQ","ssb","uvrB","hns","ihfB","recT"))%>%
+ggplot( aes(gene_name2, temp,fill=log2FoldChange))+
+    geom_tile()+
+    coord_flip()+
+    scale_x_discrete(limits = rev(levels(sig.DE.all_sub$gene_name2)))+
+    geom_vline(xintercept=c(16.5, 28.5,43.5,64.5),col="black",lwd=0.5) +
+    geom_hline(yintercept=c(3.5))+
+    geom_hline(yintercept=c(4.5,5.5,2.5,1.5), linetype="dashed", lwd=0.2)+
+    scale_fill_gradient2(low = "darkolivegreen",
+                  mid="white",
+                      high = "darkmagenta",
+                      guide = "colorbar",
+                  limits=c(-25,25)) +  
+  annotate("text", x = 85, y = 0.5, label = "Photosynthesis")+
+  annotate("text", x = 75, y = 0.5, label = "Nitrogen Cycle")+
+  annotate("text", x = 65, y = 0.5, label = "Sulfur Cycle")+
+  annotate("text", x = 45, y = 0.5, label = "Stress")+
+  annotate("text", x = 10, y = 0.5, label = "Repair and recombination")+
+    theme_classic()+
+     theme(axis.text.x = element_text(angle = 45, hjust=1))
+```
+
+```{r Supplemental Figure S11-S13}
+#Overview about the taxa associated with the DE expressed ORFs. Gene of Interest can be selected below.
+ sig.DE.all_sub%>%
+filter(!between(log2FoldChange, -5, 5))%>%
+filter(gene_name2 %in% c(
+"apcA","apcB","apcC","apcD","apcE","apcF","ATPF0A","ATPF0B","ATPF0C","ATPF1A","ATPF1B","ATPF1D","ATPF1E","ATPF1G","cpcA","cpcB","cpcC","cpcD","cpcG","cpeA","cpeB","cpeC","cpeT","cpeU","cpeY","psaA","psaB","psaC","psaD","psaE","psaF","psaI","psaK","psaL","psb28","psb28-2","psbA","psbB","psbC","psbD","psbE","psbM","psbO","psbP","psbT","psbU","psbV"#,
+#"napA","napB","narG","narH","narI","nrfA","nirB","nirD","nrfH","nirK","nirS","norB","norC","nosZ","nifD","nifH","nifK",
+#"hao","pmoA-amoA", "pmoB-amoB","pmoC-amoC","soxA","soxB","soxC","soxX","soxY","soxZ","aprA","aprB","asrA","asrB","sat","dsrA","fccA","fccB", "dsrB","dnaJ","dnaK","groEL","groES","HSP20","HSP90A","ibpA","degP","GRPE","hslU","ppiC","ppiD","dnaN","gyrA","gyrB","mfd","phrB","radA","recA","recD","recJ","recN","recQ","ssb","uvrB","hns","ihfB","recT"
+         ))%>%
+# mutate(meanlfc=mean(log2FoldChange))%>%
+# ungroup()%>%
+  ggplot(aes(x=gene_name2, y=log2FoldChange, fill=class))+
+  geom_bar(stat="identity")+
+  geom_vline(xintercept = 0, color="black")+
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+
+  theme(legend.position="bottom")+
+  facet_wrap(~temp)+
+  scale_fill_manual(values=c("#b7ffed","#3927ce","#48c900","#f300d1","#f1ea00","#002690","#af9400","#9781ff","#0f4400","#9e0089","#016573","#ff7552","#7697ff","#000b22","#ff70a9","#520037","#e33643","#5fe07e","#d53584","#509e64","#a23ed2","#579f32","#5956d5","#d3d658","#733a96","#e9b33a","#5562a9","#dd421b","#53b0db","#da8035","#372357","#a3df49","#db5bcb","#b1de8f","#8f4178","#87913d","#d087d3","#565824","#cf3e5b","#61dbbb","#6c2421","#a8ccda","#a63e27","#9b9ed7","#96672c","#59607e","#dbb675","#44252d","#cbd2ae","#9d4459","#e0bbce","#283628","#b77d99","#52785e","#dc8479","#65a7a6","#704d38","#a9907a"))
+```
+
