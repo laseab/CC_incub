@@ -1,0 +1,151 @@
+---
+title: "Untitled"
+author: "Laura Seidel"
+date: "1/18/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+##Overview Volcano plot - Figure S8
+
+#libraries
+library(tidyverse)
+library(ggpubr)
+
+#data
+C28<- read.csv("DE_controlbay_Field_vs_C28.csv", stringsAsFactors = FALSE, header=T)
+C16 <-read.csv("DE_controlbay_Field_vs_C16.csv", stringsAsFactors = FALSE, header=T)
+C8 <- read.csv("DE_controlbay_Field_vs_C8.csv", stringsAsFactors = FALSE, header=T)
+T28<- read.csv("DE_heatedbay_Field_vs_T28.csv", stringsAsFactors = FALSE, header=T)
+T16 <- read.csv("DE_heatedbay_Field_vs_T16.csv", stringsAsFactors = FALSE, header=T)
+T8 <- read.csv("DE_heatedbay_Field_vs_T8.csv", stringsAsFactors = FALSE, header=T)
+
+#categorize
+T28$expression = ifelse(T28$padj < 0.05 & abs(T28$log2FoldChange) >= 1, 
+                     ifelse(T28$log2FoldChange> 1 ,'Incub','Field'),
+                     'Stable')
+
+T8$expression = ifelse(T8$padj < 0.05 & abs(T8$log2FoldChange) >= 1, 
+                     ifelse(T8$log2FoldChange> 1 ,'Incub','Field'),
+                     'Stable')
+T16$expression = ifelse(T16$padj < 0.05 & abs(T16$log2FoldChange) >= 1, 
+                     ifelse(T16$log2FoldChange> 1 ,'Incub','Field'),
+                     'Stable')
+
+C8$expression = ifelse(C8$padj < 0.05 & abs(C8$log2FoldChange) >= 1, 
+                     ifelse(C8$log2FoldChange> 1 ,'Incub','Field'),
+                     'Stable')
+C16$expression = ifelse(C16$padj < 0.05 & abs(C16$log2FoldChange) >= 1, 
+                     ifelse(C16$log2FoldChange> 1 ,'Incub','Field'),
+                     'Stable')
+
+C28$expression = ifelse(C28$padj < 0.05 & abs(C28$log2FoldChange) >= 1, 
+                     ifelse(C28$log2FoldChange> 1 ,'Incub','Field'),
+                     'Stable')
+
+#plots
+pT28 <- ggplot(data = T28, 
+            aes(x = log2FoldChange, 
+                y = -log10(T28$padj), 
+                colour=expression)) +
+  geom_point(alpha=0.4, size=3.5) +
+  scale_color_manual(values=c("darkolivegreen", "darkmagenta","grey"))+
+  geom_vline(xintercept=c(-1,1),lty=4,col="black",lwd=0.8) +
+  geom_hline(yintercept = 1.301,lty=4,col="black",lwd=0.8) +
+  labs(x="Log2 Fold Change",
+       y="-log10 (adj.p-value)",
+       title="Heated 28 °C")  +
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position = "none", 
+        legend.title = element_blank())
+
+pT16 <- ggplot(data = T16, 
+            aes(x = log2FoldChange, 
+                y = -log10(T16$padj), 
+                colour=expression)) +
+  geom_point(alpha=0.4, size=3.5) +
+  scale_color_manual(values=c("darkolivegreen", "darkmagenta","grey"))+
+  geom_vline(xintercept=c(-1,1),lty=4,col="black",lwd=0.8) +
+  geom_hline(yintercept = 1.301,lty=4,col="black",lwd=0.8) +
+  labs(x="Log2 Fold Change",
+       y="-log10 (adj.p-value)",
+       title="Heated 16 °C")  +
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="none", 
+        legend.title = element_blank())
+
+pT8 <- ggplot(data = T8, 
+            aes(x = log2FoldChange, 
+                y = -log10(T8$padj), 
+                colour=expression)) +
+  geom_point(alpha=0.4, size=3.5) +
+  scale_color_manual(values=c("darkolivegreen", "darkmagenta","grey"))+
+  geom_vline(xintercept=c(-1,1),lty=4,col="black",lwd=0.8) +
+  geom_hline(yintercept = 1.301,lty=4,col="black",lwd=0.8) +
+  labs(x="Log2 Fold Change",
+       y="-log10 (adj.p-value)",
+       title="Heated 8 °C")  +
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="none", 
+        legend.title = element_blank())
+
+pC28 <- ggplot(data = C28, 
+            aes(x = log2FoldChange, 
+                y = -log10(C28$padj), 
+                colour=expression)) +
+  geom_point(alpha=0.4, size=3.5) +
+  scale_color_manual(values=c("darkolivegreen", "darkmagenta","grey"))+
+  geom_vline(xintercept=c(-1,1),lty=4,col="black",lwd=0.8) +
+  geom_hline(yintercept = 1.301,lty=4,col="black",lwd=0.8) +
+  labs(x="Log2 Fold Change",
+       y="-log10 (adj.p-value)",
+       title="Control 28 °C")  +
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="none", 
+        legend.title = element_blank())
+
+pC16 <- ggplot(data = C16, 
+            aes(x = log2FoldChange, 
+                y = -log10(C16$padj), 
+                colour=expression)) +
+  geom_point(alpha=0.4, size=3.5) +
+  scale_color_manual(values=c("darkolivegreen", "darkmagenta","grey"))+
+  geom_vline(xintercept=c(-1,1),lty=4,col="black",lwd=0.8) +
+  geom_hline(yintercept = 1.301,lty=4,col="black",lwd=0.8) +
+  labs(x="Log2 Fold Change",
+       y="-log10 (adj.p-value)",
+       title="Control 16 °C")  +
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="none", 
+        legend.title = element_blank())
+
+pC8 <- ggplot(data = C8, 
+            aes(x = log2FoldChange, 
+                y = -log10(C8$padj), 
+                colour=expression)) +
+  geom_point(alpha=0.4, size=3.5) +
+  scale_color_manual(values=c("darkolivegreen", "darkmagenta","grey"))+
+  geom_vline(xintercept=c(-1,1),lty=4,col="black",lwd=0.8) +
+  geom_hline(yintercept = 1.301,lty=4,col="black",lwd=0.8) +
+  labs(x="Log2 Fold Change",
+       y="-log10 (adj.p-value)",
+       title="Control 8 °C")  +
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.position="none", 
+        legend.title = element_blank())
+
+#sum plots
+plot <- ggarrange(pC8, pC16,pC28, pT8, pT16, pT28, ncol=3, nrow=2)
+```
+
